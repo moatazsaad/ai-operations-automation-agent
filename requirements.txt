@@ -1,0 +1,9 @@
+fastapi==0.135.1
+uvicorn==0.42.0
+psycopg2-binary==2.9.11
+python-dotenv==1.2.2
+openai-agents==0.12.3
+litellm==1.82.2
+slack_sdk==3.41.0
+reportlab==4.4.10
+pydantic==2.12.5
