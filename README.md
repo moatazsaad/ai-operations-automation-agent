@@ -174,7 +174,7 @@ CREATE TABLE orders (
 
 ---
 
-## ▶️ Running the Application
+## Running the Application
 
 ### Run FastAPI server
 
