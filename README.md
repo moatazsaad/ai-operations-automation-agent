@@ -6,7 +6,7 @@ This project demonstrates how natural language requests can trigger real busines
 
 ---
 
-## 🚀 Overview
+## Overview
 
 This system allows users to:
 
@@ -20,7 +20,7 @@ This system allows users to:
 
 ---
 
-## ⚙️ Features
+## Features
 
 - **AI Agent (LLM-powered)**  
   Converts natural language into structured tool calls
@@ -53,7 +53,7 @@ This system allows users to:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 
@@ -75,7 +75,7 @@ Slack Delivery / File Output
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 
@@ -106,7 +106,7 @@ ai-operations-agent/
 
 ---
 
-## 🛠️ Setup
+## Setup
 
 ### 1. Clone the repository
 ```bash
@@ -129,7 +129,7 @@ pip install -r requirements.txt
 
 ---
 
-## 🔑 Environment Variables
+## Environment Variables
 
 Create a `.env` file in the root:
 
@@ -141,7 +141,7 @@ SLACK_SIGNING_SECRET=your_slack_secret
 
 ---
 
-## 🗄️ Database Setup
+## Database Setup
 
 Create PostgreSQL database and tables:
 
@@ -190,7 +190,7 @@ http://127.0.0.1:8000/docs
 
 ---
 
-## 🧠 Using the Agent
+## Using the Agent
 
 ### CLI
 
@@ -210,7 +210,7 @@ POST `/run-agent`
 
 ---
 
-## 📊 Generate Report Directly
+## Generate Report Directly
 
 POST `/generate-report`
 
@@ -226,7 +226,7 @@ Response:
 
 ---
 
-## 💬 Slack Usage
+## Slack Usage
 
 ### Trigger report
 
@@ -249,7 +249,7 @@ approve
 
 ---
 
-## ⏱️ Scheduled Automation (Cron)
+## Scheduled Automation (Cron)
 
 Example weekly job:
 
@@ -259,7 +259,7 @@ Example weekly job:
 
 ---
 
-## 📌 Key Design Decisions
+## Key Design Decisions
 
 * **Tool-based architecture** for modular AI workflows
 * **Separation of fetch vs agent tools** for clean design
@@ -267,13 +267,4 @@ Example weekly job:
 * **Rolling 7-day window** used for weekly reporting
 * **In-memory event tracking** (can be upgraded to Redis in production)
 
----
-
-## 🚧 Future Improvements
-
-* Persistent storage for approvals and event tracking (Redis)
-* Enhanced report formatting (charts, branding)
-* Role-based Slack permissions
-* Cloud deployment (AWS/GCP)
-* Dashboard UI for report access
 
