@@ -1,0 +1,29 @@
+# Virtual environment
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+cron.log
+
+# Generated reports
+reports/
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Test/cache folders
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/.env
