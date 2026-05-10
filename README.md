@@ -1,6 +1,8 @@
 
 # AI Operations Automation Agent
 
+![Project Overview](assets/project_overview.png)
+
 AI-powered operations and procurement automation platform built with FastAPI, PostgreSQL, MCP tools, Slack workflows, scheduled reporting, and a Streamlit dashboard.
 
 The system helps teams monitor business performance, procurement risks, supplier performance, inventory shortages, reorder needs, and executive reports through both APIs and natural language AI prompts.
