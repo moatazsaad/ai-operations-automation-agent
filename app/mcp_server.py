@@ -6,6 +6,15 @@ from app.services.metrics_service import (
     fetch_total_orders,
     fetch_average_order_value,
 )
+
+from app.services.procurement_metrics_service import (
+    fetch_low_stock_items,
+    fetch_delayed_purchase_orders,
+    fetch_supplier_performance,
+    fetch_procurement_spend_by_supplier,
+    fetch_reorder_recommendations,
+)
+from app.services.operations_report_service import build_operations_report
 from app.services.report_service import build_sales_report
 from app.services.email_service import build_email_draft
 
@@ -41,6 +50,59 @@ def generate_sales_report() -> dict:
 def draft_sales_report_email(report_path: str) -> str:
     return build_email_draft(report_path)
 
+# MCP tool to get low stock inventory items
+@mcp.tool()
+def get_low_stock_items() -> list:
+    """
+    Returns inventory items that are at or below reorder point.
+    """
+    
+    return fetch_low_stock_items()
+
+# MCP tool to get delayed purchase orders
+@mcp.tool()
+def get_delayed_purchase_orders() -> list:
+    """
+    Returns purchase orders marked as delayed.
+    """
+
+    return fetch_delayed_purchase_orders()
+
+# Tool for checking inventory items that need reorder
+@mcp.tool()
+def get_low_stock_items() -> list:
+    return fetch_low_stock_items()
+
+
+# Tool for checking delayed purchase orders
+@mcp.tool()
+def get_delayed_purchase_orders() -> list:
+    return fetch_delayed_purchase_orders()
+
+@mcp.tool()
+def get_supplier_performance() -> list:
+    return fetch_supplier_performance()
+
+@mcp.tool()
+def get_procurement_spend_by_supplier() -> list:
+    return fetch_procurement_spend_by_supplier()
+
+@mcp.tool()
+def generate_operations_report() -> dict:
+    return build_operations_report()
+
+@mcp.tool()
+def get_reorder_recommendations() -> list:
+    return fetch_reorder_recommendations()
 
 if __name__ == "__main__":
     mcp.run()
+    
+    # uv run uvicorn app.main:app --reload --port 8000
+    """curl -X POST http://127.0.0.1:8001/run-agent \
+    -H "Content-Type: application/json" \
+    -d '{"prompt":"Show me low stock items that need reorder"}'"""
+    
+    """curl -s -X POST http://127.0.0.1:8001/run-agent \
+-H "Content-Type: application/json" \
+-d '{"prompt":"Generate weekly operations report"}'"""

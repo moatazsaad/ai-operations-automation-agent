@@ -1,273 +1,482 @@
+
 # AI Operations Automation Agent
 
-An end-to-end AI-powered system that automates business KPI reporting using LLMs, PostgreSQL, FastAPI, and Slack integration.
+AI-powered operations and procurement automation platform built with FastAPI, PostgreSQL, MCP tools, Slack workflows, scheduled reporting, and a Streamlit dashboard.
 
-This project demonstrates how natural language requests can trigger real business workflows including data querying, report generation, approval flows, and automated delivery.
-
----
-
-## Overview
-
-This system allows users to:
-
-- Ask business questions in natural language
-- Generate weekly KPI reports
-- Automatically analyze company data from PostgreSQL
-- Produce reports in Markdown and PDF formats
-- Trigger workflows via Slack mentions
-- Approve and upload reports directly in Slack
-- Schedule automated weekly report delivery
+The system helps teams monitor business performance, procurement risks, supplier performance, inventory shortages, reorder needs, and executive reports through both APIs and natural language AI prompts.
 
 ---
 
-## Features
+## Project Overview
 
-- **AI Agent (LLM-powered)**  
-  Converts natural language into structured tool calls
+This project started as an AI sales KPI reporting agent and was extended into a procurement and supply chain intelligence platform.
 
-- **Database Analytics (PostgreSQL)**  
-  Computes KPIs such as:
-  - Total revenue
-  - Top customers
-  - Top products
-  - Total orders
-  - Average order value
+It can:
 
-- **Report Generation**
-  - Markdown reports
-  - PDF reports (via ReportLab)
-  - Timestamped outputs
-
-- **Slack Integration**
-  - Trigger reports via bot mention
-  - Approval-based workflow (`approve`)
-  - PDF upload directly to Slack channel
-
-- **FastAPI Service**
-  - `/run-agent` → interact with agent  
-  - `/generate-report` → generate report directly  
-  - `/slack/events` → handle Slack events  
-
-- **Automation**
-  - Weekly scheduled reports via cron
+- Answer business KPI questions using live PostgreSQL data
+- Detect low-stock inventory items
+- Recommend reorder quantities
+- Detect delayed purchase orders automatically
+- Analyze supplier performance
+- Analyze procurement spend by supplier
+- Generate weekly sales/KPI reports
+- Generate weekly operations/procurement reports
+- Upload scheduled reports to Slack
+- Provide a Streamlit procurement dashboard
+- Use MCP tools to connect the AI agent to backend functions
 
 ---
 
-## Architecture
+## Business Value
 
+In a real enterprise, this system would sit on top of ERP/MRP systems such as SAP, Oracle, Coupa, or Microsoft Dynamics.
+
+The AI layer does not replace ERP. It adds intelligence on top of operational data by helping managers quickly answer questions like:
+
+- Which suppliers are causing delays?
+- Which items need reorder?
+- Where is procurement spend highest?
+- Which purchase orders are delayed?
+- What are the current inventory risks?
+- What should be prioritized this week?
+
+---
+
+## Main Features
+
+### 1. Sales KPI Analytics
+
+The agent can calculate:
+
+- Total revenue
+- Total completed orders
+- Average order value
+- Top customers
+- Top products
+
+Example prompts:
+
+```text
+What is total revenue?
+Show top customers.
+Generate weekly sales report.
+````
+
+---
+
+### 2. Inventory Risk Monitoring
+
+The system detects low-stock items using:
+
+```text
+current_stock <= reorder_point
 ```
 
-Slack / CLI / API
-↓
-FastAPI
-↓
-LLM Agent (LiteLLM)
-↓
-Tool Calling Layer
-↓
-PostgreSQL Database
-↓
-Report Generation (MD + PDF)
-↓
-Slack Delivery / File Output
+Example prompt:
 
+```text
+Show low stock items.
 ```
+
+---
+
+### 3. Reorder Recommendations
+
+The system recommends reorder quantities using:
+
+```text
+recommended_order_quantity = reorder_point + safety_stock - current_stock
+```
+
+Example prompt:
+
+```text
+Show reorder recommendations.
+```
+
+---
+
+### 4. Delayed Purchase Order Detection
+
+The system automatically detects delayed POs using:
+
+```text
+actual_delivery_date IS NULL
+AND expected_delivery_date < CURRENT_DATE
+```
+
+Example prompt:
+
+```text
+Which purchase orders are delayed?
+```
+
+---
+
+### 5. Supplier Performance Analytics
+
+The system calculates:
+
+* Total purchase orders
+* Delayed purchase orders
+* Delivered purchase orders
+* On-time deliveries
+* On-time delivery rate
+* Total supplier spend
+
+Example prompt:
+
+```text
+Show supplier performance.
+```
+
+---
+
+### 6. Procurement Spend Analysis
+
+The system calculates supplier spend using:
+
+```text
+SUM(total_amount) GROUP BY supplier
+```
+
+Example prompt:
+
+```text
+Show procurement spend by supplier.
+```
+
+---
+
+### 7. Operations Report Generation
+
+The system generates a weekly operations report including:
+
+* Inventory risks
+* Low-stock items
+* Delayed purchase orders
+* Supplier performance
+* Procurement spend by supplier
+
+Outputs:
+
+```text
+Markdown report
+PDF report
+```
+
+Example prompt:
+
+```text
+Generate weekly operations report.
+```
+
+---
+
+### 8. Slack Automation
+
+The system can upload reports to Slack automatically.
+
+Current Slack capabilities:
+
+* Scheduled weekly report upload
+* Report file upload
+* Slack bot integration
+* Slack signature verification
+* Approval-ready workflow structure
+
+---
+
+### 9. Streamlit Dashboard
+
+The project includes a Streamlit dashboard called:
+
+```text
+AI Procurement Control Tower
+```
+
+Dashboard sections:
+
+* Executive KPI cards
+* AI insights
+* Recommended actions
+* Spend by supplier chart
+* Supplier on-time delivery chart
+* Delayed PO chart
+* Inventory risk chart
+* Detailed procurement tables
+* Report generation button
+
+Run with:
+
+```bash
+.venv/bin/python -m streamlit run app/dashboard.py
+```
+
+---
+
+## Tech Stack
+
+* Python
+* FastAPI
+* PostgreSQL
+* psycopg2
+* Pydantic
+* MCP
+* OpenAI Agents SDK
+* LiteLLM
+* Fireworks AI model endpoint
+* Slack SDK
+* ReportLab
+* Streamlit
+* Pandas
+* Cron jobs
 
 ---
 
 ## Project Structure
 
+```text
+app/
+├── agent.py
+├── main.py
+├── mcp_server.py
+├── dashboard.py
+├── run_weekly_report.py
+├── run_weekly_operations_report.py
+│
+├── database/
+│   └── db.py
+│
+├── services/
+│   ├── metrics_service.py
+│   ├── procurement_metrics_service.py
+│   ├── report_service.py
+│   ├── operations_report_service.py
+│   ├── email_service.py
+│   └── slack_service.py
+│
+reports/
+├── weekly_sales_report_*.md
+├── weekly_sales_report_*.pdf
+├── weekly_operations_report_*.md
+└── weekly_operations_report_*.pdf
 ```
-
-ai-operations-automation-agent-mcp/
-│
-├── app/
-│   ├── agent.py
-│   ├── main.py
-│   ├── mcp_server.py
-│   ├── run_agent.py
-│   ├── run_weekly_report.py
-│   ├── test_report_tool.py
-│   │
-│   ├── database/
-│   │   ├── db.py
-│   │   └── test_db.py
-│   │
-│   ├── services/
-│   │   ├── database_tools.py
-│   │   ├── report_tools.py
-│   │   ├── email_tools.py
-│
-├── reports/
-├── requirements.txt
-├── .gitignore
-├── README.md
-└── .env (not committed)
-
-````
 
 ---
 
-## Setup
+## Database Tables
 
-### 1. Clone the repository
+Existing sales tables:
 
-```bash
-git clone https://github.com/YOUR_USERNAME/ai-operations-automation-agent-mcp.git
-cd ai-operations-automation-agent-mcp
-````
-
-### 2. Create virtual environment
-
-```bash
-uv venv
-source .venv/bin/activate
+```text
+customers
+orders
+products
 ```
 
-### 3. Install dependencies
+Procurement and supply chain tables:
 
-```bash
-uv pip install -r requirements.txt
+```text
+suppliers
+purchase_orders
+inventory
 ```
 
 ---
 
 ## Environment Variables
 
-Create a `.env` file in the root:
+Create a `.env` file:
 
 ```env
 DATABASE_URL=postgresql://postgres:password@localhost:5432/ai_ops
-SLACK_BOT_TOKEN=your_slack_token
-SLACK_SIGNING_SECRET=your_slack_secret
+SLACK_BOT_TOKEN=your_slack_bot_token
+SLACK_SIGNING_SECRET=your_slack_signing_secret
 ```
 
 ---
 
-## Database Setup
-
-Create PostgreSQL database and tables:
-
-```sql
-CREATE DATABASE ai_ops;
-
-CREATE TABLE customers (
-    id SERIAL PRIMARY KEY,
-    name TEXT,
-    email TEXT
-);
-
-CREATE TABLE products (
-    id SERIAL PRIMARY KEY,
-    name TEXT,
-    category TEXT,
-    price NUMERIC
-);
-
-CREATE TABLE orders (
-    id SERIAL PRIMARY KEY,
-    customer_id INT,
-    product_id INT,
-    quantity INT,
-    total_amount NUMERIC,
-    order_date DATE,
-    status TEXT
-);
-```
-
----
-
-## Running the Application
-
-### Run FastAPI server
+## Run the FastAPI App
 
 ```bash
-uv run python -m uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8001
+```
+
+API docs:
+
+```text
+http://127.0.0.1:8001/docs
+```
+
+---
+
+## Important API Endpoints
+
+Health check:
+
+```bash
+GET /
+```
+
+Run AI agent:
+
+```bash
+POST /run-agent
+```
+
+Generate sales report:
+
+```bash
+POST /generate-report
+```
+
+Generate operations report:
+
+```bash
+POST /generate-operations-report
+```
+
+Slack events endpoint:
+
+```bash
+POST /slack/events
+```
+
+---
+
+## Example API Calls
+
+Run agent:
+
+```bash
+curl -s -X POST http://127.0.0.1:8001/run-agent \
+-H "Content-Type: application/json" \
+-d '{"prompt":"Show supplier performance"}'
+```
+
+Generate operations report:
+
+```bash
+curl -s -X POST http://127.0.0.1:8001/generate-operations-report
+```
+
+Show reorder recommendations:
+
+```bash
+curl -s -X POST http://127.0.0.1:8001/run-agent \
+-H "Content-Type: application/json" \
+-d '{"prompt":"Show reorder recommendations"}'
+```
+
+---
+
+## Run Streamlit Dashboard
+
+```bash
+.venv/bin/python -m streamlit run app/dashboard.py
 ```
 
 Open:
 
-```
-http://127.0.0.1:8000/docs
+```text
+http://127.0.0.1:8501
 ```
 
 ---
 
-## Using the Agent
+## Scheduled Weekly Operations Report
 
-### CLI
+Cron job example:
 
 ```bash
-uv run python -m app.run_agent "What is our total revenue?"
+0 9 * * MON cd /home/moataz/projects/ai-operations-automation-agent && /home/moataz/.local/bin/uv run python -m app.run_weekly_operations_report >> cron.log 2>&1
 ```
 
-### API
+This runs every Monday at 9 AM and uploads the weekly operations report to Slack.
 
-POST `/run-agent`
+---
 
-```json
-{
-  "prompt": "Generate weekly sales report"
-}
+## MCP Tools
+
+The AI agent uses MCP tools such as:
+
+```text
+get_total_revenue
+get_top_customers
+get_top_products
+get_total_orders
+get_average_order_value
+get_low_stock_items
+get_delayed_purchase_orders
+get_supplier_performance
+get_procurement_spend_by_supplier
+get_reorder_recommendations
+generate_sales_report
+generate_operations_report
+draft_sales_report_email
 ```
 
 ---
 
-## Generate Report Directly
+## Example Manager Workflow
 
-POST `/generate-report`
+1. The system receives procurement and inventory data.
+2. It detects low stock, delayed POs, supplier issues, and spend concentration.
+3. It generates a weekly operations report.
+4. The manager receives the PDF in Slack.
+5. The manager asks the AI agent follow-up questions.
+6. The manager takes action in SAP/ERP.
 
-Response:
+Example actions:
 
-```json
-{
-  "message": "Weekly report generated successfully",
-  "markdown_path": "...",
-  "pdf_path": "..."
-}
-```
-
----
-
-## Slack Usage
-
-### Trigger report
-
-```
-@ai-ops-agent generate weekly KPI report
-```
-
-### Approve upload
-
-```
-approve
-```
-
-### Workflow
-
-1. User requests report
-2. System generates report
-3. User approves
-4. PDF uploaded to Slack
+* Follow up with delayed supplier
+* Approve replenishment
+* Escalate delayed PO
+* Review supplier scorecard
+* Prioritize urgent purchases
 
 ---
 
-## Scheduled Automation (Cron)
+## Enterprise Positioning
 
-Example weekly job:
+This project demonstrates how AI agents can be used as an operations intelligence layer on top of ERP/MRP systems.
 
-```bash
-0 9 * * MON cd /path/to/project && /path/to/.venv/bin/python -m app.run_weekly_report
+It combines:
+
+* Procurement domain knowledge
+* AI agents
+* SQL analytics
+* MCP tool architecture
+* Slack automation
+* Scheduled reporting
+* Dashboard visualization
+* Executive decision support
+
+---
+
+## Future Improvements
+
+Planned improvements:
+
+* Authentication and user roles
+* Persistent approval storage using PostgreSQL or Redis
+* Supplier risk scoring
+* Spend by category
+* Open PO aging
+* Lead time analytics
+* ERP/SAP API integration
+* AI chat inside Streamlit dashboard
+* More advanced forecasting
+* Cloud deployment
+
+---
+
+## Summary
+
+This project is an AI-powered procurement and operations control tower.
+
+It helps organizations move from manual reporting and scattered ERP checks to automated risk detection, supplier visibility, inventory intelligence, and executive-ready reporting.
+
 ```
 
----
-
-## Key Design Decisions
-
-* Tool-based architecture for modular AI workflows
-* Separation of fetch vs agent tools for clean design
-* Approval-based Slack workflow to prevent unintended actions
-* Rolling 7-day window for weekly reporting
-* In-memory event tracking (can be upgraded to Redis in production)
-
----

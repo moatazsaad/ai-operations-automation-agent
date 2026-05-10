@@ -14,6 +14,7 @@ import hashlib
 import logging
 from app.services.report_service import build_sales_report
 from app.agent import create_operations_agent
+from app.services.operations_report_service import build_operations_report
 
 # Configure basic logging for the application
 logging.basicConfig(level=logging.INFO)
@@ -132,6 +133,16 @@ async def run_agent(request: AgentRequest):
     # Return the final agent output
     return {"response": result.final_output}
 
+# Define an endpoint to directly generate the weekly procurement/operations report
+@app.post("/generate-operations-report")
+async def generate_operations_report():
+    paths = build_operations_report()
+
+    return {
+        "message": "Weekly operations report generated successfully",
+        "markdown_path": paths["markdown_path"],
+        "pdf_path": paths["pdf_path"],
+    }
 
 # Define an endpoint for directly generating the weekly report without going through the agent
 @app.post("/generate-report")
