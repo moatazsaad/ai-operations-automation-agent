@@ -481,3 +481,4 @@ This project is an AI-powered procurement and operations control tower.
 It helps organizations move from manual reporting and scattered ERP checks to automated risk detection, supplier visibility, inventory intelligence, and executive-ready reporting.
 
 
+
