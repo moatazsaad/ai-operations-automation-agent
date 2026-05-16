@@ -319,3 +319,8 @@ async def slack_events(request: Request):
 
     # Return a success acknowledgment to Slack
     return {"ok": True}
+
+
+# python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+# python -m streamlit run app/dashboard.py --server.port 8501 --server.address 0.0.0.0
+# ./.venv/bin/python -m streamlit run app/dashboard.py --server.port 8501 --server.address 0.0.0.0

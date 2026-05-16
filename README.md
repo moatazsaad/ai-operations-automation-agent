@@ -227,7 +227,7 @@ Run with:
 * MCP
 * OpenAI Agents SDK
 * LiteLLM
-* Fireworks AI model endpoint
+* Fireworks AI / LLM endpoint
 * Slack SDK
 * ReportLab
 * Streamlit

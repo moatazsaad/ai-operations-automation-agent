@@ -13,6 +13,7 @@ from app.services.procurement_metrics_service import (
     fetch_supplier_performance,
     fetch_procurement_spend_by_supplier,
     fetch_reorder_recommendations,
+    fetch_top_delayed_suppliers,
 )
 from app.services.operations_report_service import build_operations_report
 from app.services.report_service import build_sales_report
@@ -50,22 +51,12 @@ def generate_sales_report() -> dict:
 def draft_sales_report_email(report_path: str) -> str:
     return build_email_draft(report_path)
 
-# MCP tool to get low stock inventory items
-@mcp.tool()
-def get_low_stock_items() -> list:
-    """
-    Returns inventory items that are at or below reorder point.
-    """
-    
-    return fetch_low_stock_items()
-
 # MCP tool to get delayed purchase orders
 @mcp.tool()
 def get_delayed_purchase_orders() -> list:
     """
     Returns purchase orders marked as delayed.
     """
-
     return fetch_delayed_purchase_orders()
 
 # Tool for checking inventory items that need reorder
@@ -73,11 +64,6 @@ def get_delayed_purchase_orders() -> list:
 def get_low_stock_items() -> list:
     return fetch_low_stock_items()
 
-
-# Tool for checking delayed purchase orders
-@mcp.tool()
-def get_delayed_purchase_orders() -> list:
-    return fetch_delayed_purchase_orders()
 
 @mcp.tool()
 def get_supplier_performance() -> list:
@@ -94,6 +80,15 @@ def generate_operations_report() -> dict:
 @mcp.tool()
 def get_reorder_recommendations() -> list:
     return fetch_reorder_recommendations()
+
+@mcp.tool()
+def get_top_delayed_suppliers() -> list:
+    """
+    Returns suppliers ranked by delay severity.
+    The result is already sorted by delayed PO count, average days delayed, and max days delayed.
+    Do not reorder the result.
+    """
+    return fetch_top_delayed_suppliers()
 
 if __name__ == "__main__":
     mcp.run()

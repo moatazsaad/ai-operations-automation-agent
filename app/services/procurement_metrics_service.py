@@ -4,32 +4,22 @@ from app.database.db import get_connection
 
 # Function to fetch inventory items where current stock is at or below reorder point
 def fetch_low_stock_items() -> list:
-    # Open a connection to the PostgreSQL database
     conn = get_connection()
-
-    # Create a cursor to execute SQL queries
     cursor = conn.cursor()
 
-    # SQL query to find items that need reorder
     query = """
         SELECT item_name, category, current_stock, reorder_point
         FROM inventory
         WHERE current_stock <= reorder_point
     """
 
-    # Execute the SQL query
-    cursor.execute(query)
+    try:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
-    # Fetch all rows returned by the query
-    rows = cursor.fetchall()
-
-    # Close the cursor
-    cursor.close()
-
-    # Close the database connection
-    conn.close()
-
-    # Convert database rows into a list of dictionaries
     return [
         {
             "item_name": row[0],
@@ -41,15 +31,11 @@ def fetch_low_stock_items() -> list:
     ]
 
 
-# Function to fetch purchase orders that are marked as delayed
+# Function to fetch purchase orders that are automatically delayed
 def fetch_delayed_purchase_orders() -> list:
-    # Open a connection to the PostgreSQL database
     conn = get_connection()
-
-    # Create a cursor to execute SQL queries
     cursor = conn.cursor()
 
-    # SQL query to get delayed purchase orders with supplier name
     query = """
         SELECT po.id,
                s.name,
@@ -63,19 +49,13 @@ def fetch_delayed_purchase_orders() -> list:
         AND po.expected_delivery_date < CURRENT_DATE
     """
 
-    # Execute the SQL query
-    cursor.execute(query)
+    try:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
-    # Fetch all rows returned by the query
-    rows = cursor.fetchall()
-
-    # Close the cursor
-    cursor.close()
-
-    # Close the database connection
-    conn.close()
-
-    # Convert database rows into a list of dictionaries
     return [
         {
             "purchase_order_id": row[0],
@@ -86,16 +66,64 @@ def fetch_delayed_purchase_orders() -> list:
         }
         for row in rows
     ]
-    
-    # Function to calculate supplier performance using purchase order data
-def fetch_supplier_performance() -> list:
+
+# Function to get the top delayed suppliers with delay severity
+def fetch_top_delayed_suppliers(limit: int = 5) -> list:
     # Open database connection
     conn = get_connection()
 
     # Create cursor to run SQL
     cursor = conn.cursor()
 
-    # Calculate total POs, delayed POs, delivered POs, on-time delivered POs, and spend by supplier
+    # This query:
+    # 1. Finds delayed purchase orders
+    # 2. Groups them by supplier
+    # 3. Counts how many delayed POs each supplier has
+    # 4. Calculates average days delayed
+    # 5. Calculates maximum days delayed
+    # 6. Returns only the top suppliers
+    query = """
+        SELECT
+            s.name AS supplier_name,
+            COUNT(po.id) AS delayed_po_count,
+            ROUND(AVG(CURRENT_DATE - po.expected_delivery_date), 2) AS average_days_delayed,
+            MAX(CURRENT_DATE - po.expected_delivery_date) AS max_days_delayed
+        FROM purchase_orders po
+        JOIN suppliers s
+        ON po.supplier_id = s.id
+        WHERE po.actual_delivery_date IS NULL
+        AND po.expected_delivery_date < CURRENT_DATE
+        GROUP BY s.name
+        ORDER BY delayed_po_count DESC, max_days_delayed DESC
+        LIMIT %s
+    """
+
+    # Execute query with safe limit parameter
+    cursor.execute(query, (limit,))
+
+    # Fetch returned rows
+    rows = cursor.fetchall()
+
+    # Close database resources
+    cursor.close()
+    conn.close()
+
+    # Convert SQL rows into Python dictionaries
+    return [
+        {
+            "supplier_name": row[0],
+            "delayed_po_count": int(row[1]),
+            "average_days_delayed": float(row[2] or 0),
+            "max_days_delayed": int(row[3] or 0),
+        }
+        for row in rows
+    ]
+
+# Function to calculate supplier performance using purchase order data
+def fetch_supplier_performance() -> list:
+    conn = get_connection()
+    cursor = conn.cursor()
+
     query = """
         SELECT
             s.name AS supplier_name,
@@ -131,17 +159,13 @@ def fetch_supplier_performance() -> list:
         ORDER BY delayed_purchase_orders DESC, total_spend DESC
     """
 
-    # Execute query
-    cursor.execute(query)
+    try:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
-    # Fetch rows
-    rows = cursor.fetchall()
-
-    # Close database resources
-    cursor.close()
-    conn.close()
-
-    # Convert rows into dictionaries
     return [
         {
             "supplier_name": row[0],
@@ -152,13 +176,14 @@ def fetch_supplier_performance() -> list:
             "total_spend": float(row[5] or 0),
             "on_time_delivery_rate": round(
                 (int(row[4] or 0) / int(row[3] or 1)) * 100,
-                2
+                2,
             ),
         }
         for row in rows
     ]
-    
-    # Function to calculate procurement spend by supplier
+
+
+# Function to calculate procurement spend by supplier
 def fetch_procurement_spend_by_supplier() -> list:
     conn = get_connection()
     cursor = conn.cursor()
@@ -174,11 +199,12 @@ def fetch_procurement_spend_by_supplier() -> list:
         ORDER BY total_spend DESC
     """
 
-    cursor.execute(query)
-    rows = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
+    try:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
     return [
         {
@@ -186,15 +212,14 @@ def fetch_procurement_spend_by_supplier() -> list:
             "total_spend": float(row[1] or 0),
         }
         for row in rows
-    ]# Function to recommend reorder quantities for low-stock items
-def fetch_reorder_recommendations() -> list:
-    # Open database connection
-    conn = get_connection()
+    ]
 
-    # Create cursor to execute SQL
+
+# Function to recommend reorder quantities for low-stock items
+def fetch_reorder_recommendations() -> list:
+    conn = get_connection()
     cursor = conn.cursor()
 
-    # Find items at or below reorder point and calculate recommended quantity
     query = """
         SELECT
             item_name,
@@ -207,17 +232,13 @@ def fetch_reorder_recommendations() -> list:
         WHERE current_stock <= reorder_point
     """
 
-    # Execute query
-    cursor.execute(query)
+    try:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
-    # Fetch results
-    rows = cursor.fetchall()
-
-    # Close database resources
-    cursor.close()
-    conn.close()
-
-    # Convert rows into dictionaries
     return [
         {
             "item_name": row[0],
@@ -229,10 +250,11 @@ def fetch_reorder_recommendations() -> list:
         }
         for row in rows
     ]
-    
-    # testing
-    # python -c "from app.services.procurement_metrics_service import fetch_low_stock_items; print(fetch_low_stock_items())"
-    # python -c "from app.services.procurement_metrics_service import fetch_delayed_purchase_orders; print(fetch_delayed_purchase_orders())"
-    # python -c "from app.services.procurement_metrics_service import fetch_supplier_performance; print(fetch_supplier_performance())"
-    # python -c "from app.services.procurement_metrics_service import fetch_reorder_recommendations; print(fetch_reorder_recommendations())"
-    # python -c "from app.services.procurement_metrics_service import fetch_procurement_spend_by_supplier; print(fetch_procurement_spend_by_supplier())"
+
+
+# Testing commands:
+# uv run python -c "from app.services.procurement_metrics_service import fetch_low_stock_items; print(fetch_low_stock_items())"
+# uv run python -c "from app.services.procurement_metrics_service import fetch_delayed_purchase_orders; print(fetch_delayed_purchase_orders())"
+# uv run python -c "from app.services.procurement_metrics_service import fetch_supplier_performance; print(fetch_supplier_performance())"
+# uv run python -c "from app.services.procurement_metrics_service import fetch_reorder_recommendations; print(fetch_reorder_recommendations())"
+# uv run python -c "from app.services.procurement_metrics_service import fetch_procurement_spend_by_supplier; print(fetch_procurement_spend_by_supplier())"
