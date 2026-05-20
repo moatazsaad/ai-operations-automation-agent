@@ -1,5 +1,8 @@
 # AI Operations Automation Agent
 
+Live Demo: [https://aiops.moatazai.com](https://aiops.moatazai.com)
+GitHub: [https://github.com/moatazsaad/ai-operations-automation-agent](https://github.com/moatazsaad/ai-operations-automation-agent)
+
 ![Project Overview](assets/project_overview.png)
 
 **Live Demo:** https://aiops.moatazai.com  
@@ -69,7 +72,7 @@ PostgreSQL database on localhost:5432
 
 ---
 
-## Business Value
+# Business Problem
 
 In a real enterprise, this system can sit on top of ERP/MRP systems such as SAP, Oracle, Coupa, or Microsoft Dynamics.
 
@@ -221,7 +224,99 @@ PostgreSQL :5432
 
 ---
 
-## Tech Stack
+# Infrastructure and DevOps
+
+## AWS EC2 Deployment
+
+The system is deployed on AWS EC2 using Ubuntu Linux.
+
+Production setup includes:
+
+* FastAPI backend service
+* Streamlit dashboard service
+* PostgreSQL database
+* Nginx reverse proxy
+* HTTPS SSL certificates
+* Elastic IP
+* Cloudflare-managed DNS
+* CloudWatch monitoring
+
+---
+
+## systemd Services
+
+FastAPI and Streamlit run as systemd services.
+
+Benefits:
+
+* Automatic restart after crashes
+* Auto-start on server reboot
+* Centralized logs
+* Easier production management
+
+Example services:
+
+```text
+fastapi.service
+streamlit.service
+```
+
+---
+
+## Nginx Reverse Proxy
+
+Nginx routes requests based on URL path.
+
+Routing logic:
+
+```text
+https://aiops.moatazai.com
+→ Streamlit :8501
+
+https://aiops.moatazai.com/slack/events
+→ FastAPI :8000
+```
+
+Benefits:
+
+* One secure HTTPS domain
+* Internal app ports remain private
+* Cleaner production architecture
+* Slack webhook support
+* HTTPS termination
+
+---
+
+## HTTPS and Security
+
+HTTPS was configured using Certbot and Let's Encrypt.
+
+Security improvements include:
+
+* SSL/TLS encryption
+* Protected internal ports
+* Slack signature verification
+* HMAC verification for Slack events
+* Timestamp validation to reduce replay attacks
+
+Ports `8000` and `8501` are not exposed publicly.
+
+---
+
+## CloudWatch Monitoring
+
+CloudWatch monitoring tracks:
+
+* CPU utilization
+* EC2 health status
+* Network traffic
+* Server activity
+
+This helps monitor application health and server usage.
+
+---
+
+# Tech Stack
 
 - **Languages:** Python, SQL
 - **Backend:** FastAPI, Pydantic
@@ -235,7 +330,37 @@ PostgreSQL :5432
 
 ---
 
-## Project Structure
+# MCP Tool Architecture
+
+The AI agent uses MCP tools such as:
+
+```text
+get_total_revenue
+get_top_customers
+get_total_orders
+get_average_order_value
+get_low_stock_items
+get_delayed_purchase_orders
+get_supplier_performance
+get_procurement_spend_by_supplier
+get_reorder_recommendations
+generate_sales_report
+generate_operations_report
+```
+
+MCP was used instead of simple decorated functions to create a cleaner separation between the agent and business tools.
+
+Benefits include:
+
+* Reusable tools
+* Better modularity
+* Easier debugging
+* More scalable architecture
+* Better enterprise-style design
+
+---
+
+# Project Structure
 
 ```text
 app/
@@ -494,20 +619,23 @@ send_slack_report_notification
 
 Completed:
 
-- HTTPS enabled through Nginx and SSL
-- Elastic IP attached for stable access
-- Cloudflare DNS configured
-- FastAPI and Streamlit managed by systemd
-- Public access to internal ports `8000` and `8501` removed
-- Nginx used as the single public entry point
+- Deployed the application on AWS EC2 with Ubuntu Linux
+- Configured FastAPI and Streamlit as `systemd` services for automatic restart after crashes or server reboot
+- Added Nginx as a reverse proxy and single public entry point
+- Connected Cloudflare DNS to the EC2 Elastic IP using `aiops.moatazai.com`
+- Enabled HTTPS/SSL using Certbot and Let's Encrypt
+- Removed direct public access to internal app ports `8000` and `8501`
+- Routed `/slack/events` through Nginx to FastAPI for Slack webhook handling
+- Added Slack signature verification using HMAC and timestamp checks
+- Added basic CloudWatch monitoring for CPU utilization, EC2 instance health checks, and NetworkIn/NetworkOut traffic
 
 Planned:
 
-- Add user authentication and roles
-- Store backups outside EC2, such as S3 or RDS automated backups
-- Move secrets to AWS Secrets Manager or Parameter Store
-- Add CloudWatch monitoring and alerts
-- Add more detailed user activity logging
+- Add user authentication and role-based access control
+- Store database backups outside EC2 using S3 or migrate PostgreSQL to RDS with automated backups
+- Move secrets from `.env` to AWS Secrets Manager or Parameter Store
+- Add CloudWatch alarms and deeper disk/log monitoring using CloudWatch Agent
+- Add user activity logging to track prompts, report generation, and Slack workflow actions
 
 ---
 
@@ -516,14 +644,14 @@ Planned:
 - Authentication and role-based access control
 - Persistent approval storage using PostgreSQL or Redis
 - Supplier risk scoring
-- Spend by category
+- Spend by category analytics
 - Open purchase order aging
 - Lead time analytics
 - ERP/SAP API integration
 - AI chat history inside the dashboard
-- Forecasting for inventory demand
+- Inventory demand forecasting
 - Automated database backups to S3
-- CloudWatch monitoring and alerting
+- CloudWatch alarms, disk monitoring, and centralized application logs
 
 ---
 
@@ -533,7 +661,7 @@ Built and deployed an AI operations control tower that lets managers ask procure
 
 ---
 
-## Summary
+# Summary
 
 This project demonstrates how AI agents can act as an operations intelligence layer on top of business systems.
 

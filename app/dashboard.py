@@ -1,16 +1,7 @@
-# Import operating system utilities to read environment variables
 import os
-
-# Import requests to call the FastAPI backend from Streamlit
 import requests
-
-# Import Streamlit for building the dashboard UI
 import streamlit as st
-
-# Import pandas to convert database results into DataFrames
 import pandas as pd
-
-# Import procurement metric functions that read data from PostgreSQL
 from app.services.procurement_metrics_service import (
     fetch_low_stock_items,
     fetch_delayed_purchase_orders,
@@ -19,14 +10,10 @@ from app.services.procurement_metrics_service import (
     fetch_reorder_recommendations,
     fetch_top_delayed_suppliers,
 )
-
-# Import report builder function to generate weekly operations reports
 from app.services.operations_report_service import build_operations_report
 
 
-# =========================
 # Page Configuration
-# =========================
 
 # Configure the browser tab title and dashboard layout
 st.set_page_config(
@@ -34,10 +21,6 @@ st.set_page_config(
     layout="wide",
 )
 
-
-# =========================
-# Helper Functions
-# =========================
 
 # Convert raw database-style column names into clean business-friendly names
 # Example: purchase_order_id -> Purchase Order ID
@@ -64,9 +47,7 @@ def format_money(value: float) -> str:
     return f"${value:,.2f}"
 
 
-# =========================
 # Dashboard Header
-# =========================
 
 # Main dashboard title
 st.title("AI Procurement Control Tower")
@@ -79,9 +60,7 @@ st.caption(
 st.divider()
 
 
-# =========================
 # Ask AI Agent Section
-# =========================
 
 # Section title for natural-language interaction
 st.subheader("Ask the AI Operations Agent")
@@ -149,9 +128,7 @@ if ask_button:
 st.divider()
 
 
-# =========================
 # Load Data
-# =========================
 
 # Fetch low-stock inventory items from PostgreSQL
 low_stock_items = fetch_low_stock_items()
@@ -173,9 +150,7 @@ reorder_recommendations = fetch_reorder_recommendations()
 top_delayed_suppliers = fetch_top_delayed_suppliers()
 
 
-# =========================
 # Convert Data to DataFrames
-# =========================
 
 # Convert list outputs into pandas DataFrames for Streamlit tables/charts
 low_stock_df = pd.DataFrame(low_stock_items)
@@ -186,9 +161,7 @@ reorder_df = pd.DataFrame(reorder_recommendations)
 top_delayed_suppliers_df = pd.DataFrame(top_delayed_suppliers)
 
 
-# =========================
 # KPI Calculations
-# =========================
 
 # Calculate total procurement spend across all suppliers
 total_spend = sum(item["total_spend"] for item in spend_by_supplier)
@@ -203,9 +176,7 @@ avg_on_time = (
 )
 
 
-# =========================
 # Executive KPI Cards
-# =========================
 
 st.subheader("Executive Overview")
 
@@ -222,9 +193,7 @@ col5.metric("Avg Delivered On-Time", f"{avg_on_time:.2f}%")
 st.divider()
 
 
-# =========================
 # AI Insights
-# =========================
 
 st.subheader("AI Insights")
 
@@ -282,9 +251,7 @@ for index, insight in enumerate(insights):
 st.divider()
 
 
-# =========================
 # Recommended Actions
-# =========================
 
 st.subheader("Recommended Actions")
 
@@ -334,9 +301,7 @@ else:
 st.divider()
 
 
-# =========================
 # Procurement Analytics Charts
-# =========================
 
 st.subheader("Procurement Analytics")
 
@@ -405,9 +370,7 @@ with chart_col6:
 st.divider()
 
 
-# =========================
 # Detailed Data Tables
-# =========================
 
 st.subheader("Detailed Procurement Data")
 
@@ -471,9 +434,7 @@ with tab6:
 st.divider()
 
 
-# =========================
 # Report Generation
-# =========================
 
 st.subheader("Executive Report Generation")
 
@@ -486,3 +447,6 @@ if st.button("Generate Weekly Operations Report"):
     st.success("Weekly operations report generated successfully.")
     st.write(f"Markdown: {paths['markdown_path']}")
     st.write(f"PDF: {paths['pdf_path']}")
+    
+    # python -m streamlit run app/dashboard.py
+    # default port is 8501

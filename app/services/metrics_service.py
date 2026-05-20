@@ -1,8 +1,19 @@
 from app.database.db import get_connection
 
+# Validate the optional days filter to prevent invalid negative date ranges
+def validate_days(days):
+    if days is not None and days < 0:
+        raise ValueError("days must be non-negative")
+
+# Validate the result limit to avoid empty, invalid, or very large query results
+def validate_limit(limit):
+    if limit < 1 or limit > 20:
+        raise ValueError("limit must be between 1 and 20")
+    
 # Function to fetch total revenue from completed orders
 def fetch_total_revenue(days: int | None = None) -> float:
-
+    validate_days(days)
+    
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -20,17 +31,17 @@ def fetch_total_revenue(days: int | None = None) -> float:
     if days is not None:
         # Extend query to include rows from the given number of days
         query += " AND order_date >= CURRENT_DATE - (%s * INTERVAL '1 day')"
-
         # Add days value
         params.append(days)
-
-    # Execute query with the parameters
-    cursor.execute(query, tuple(params))
-
-    # Read the first row and column returned by the query
-    revenue = cursor.fetchone()[0]
-    cursor.close()
-    conn.close()
+        
+    try:
+        # Execute query with the parameters
+        cursor.execute(query, tuple(params))
+        # Read the first row and column returned by the query
+        revenue = cursor.fetchone()[0]
+    finally:
+        cursor.close()
+        conn.close()
     
     # Return result or 0 if database returned null
     return float(revenue or 0)
@@ -38,6 +49,9 @@ def fetch_total_revenue(days: int | None = None) -> float:
 
 # Function to fetch top customers by spending
 def fetch_top_customers(limit: int = 3, days: int | None = None) -> list:
+    validate_days(days)
+    validate_limit(limit)
+    
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -67,15 +81,16 @@ def fetch_top_customers(limit: int = 3, days: int | None = None) -> list:
         LIMIT %s
     """
 
-    # Add days value
+    # Add limit value
     params.append(limit)
 
-    # Execute the query with the parameters
-    cursor.execute(query, tuple(params))
-    rows = cursor.fetchall()
-    
-    cursor.close()
-    conn.close()
+    try:
+        # Execute the query with the parameters
+        cursor.execute(query, tuple(params))
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
     # Convert each database row into Python dictionary
     return [
@@ -88,6 +103,8 @@ def fetch_top_customers(limit: int = 3, days: int | None = None) -> list:
 
 # Function to fetch top products by revenue
 def fetch_top_products(limit: int = 3, days: int | None = None) -> list:
+    validate_days(days)
+    validate_limit(limit)
     
     conn = get_connection()
     cursor = conn.cursor()
@@ -113,10 +130,12 @@ def fetch_top_products(limit: int = 3, days: int | None = None) -> list:
         LIMIT %s
     """
     params.append(limit)
-    cursor.execute(query, tuple(params))
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
+    try:
+        cursor.execute(query, tuple(params))
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
     return [
         {
             "product_name": row[0],
@@ -125,9 +144,9 @@ def fetch_top_products(limit: int = 3, days: int | None = None) -> list:
         for row in rows
     ]
 
-
 # Function to count completed orders
 def fetch_total_orders(days: int | None = None) -> int:
+    validate_days(days)
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -142,17 +161,19 @@ def fetch_total_orders(days: int | None = None) -> int:
         query += " AND order_date >= CURRENT_DATE - (%s * INTERVAL '1 day')"
         params.append(days)
 
-    cursor.execute(query, tuple(params))
-    total_orders = cursor.fetchone()[0]
+    try:
+        cursor.execute(query, tuple(params))
+        total_orders = cursor.fetchone()[0]
+    finally:
+        cursor.close()
+        conn.close()
 
-    cursor.close()
-    conn.close()
     return int(total_orders or 0)
 
 
 # Function to compute the average order value for completed orders
 def fetch_average_order_value(days: int | None = None) -> float:
-
+    validate_days(days)
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -167,9 +188,11 @@ def fetch_average_order_value(days: int | None = None) -> float:
         query += " AND order_date >= CURRENT_DATE - (%s * INTERVAL '1 day')"
         params.append(days)
 
-    cursor.execute(query, tuple(params))
-    avg_order_value = cursor.fetchone()[0]
-    cursor.close()
-    conn.close()
+    try:
+        cursor.execute(query, tuple(params))
+        avg_order_value = cursor.fetchone()[0]
+    finally:
+        cursor.close()
+        conn.close()
 
     return float(avg_order_value or 0)
