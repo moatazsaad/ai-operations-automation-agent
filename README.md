@@ -5,7 +5,7 @@ GitHub: [https://github.com/moatazsaad/ai-operations-automation-agent](https://g
 
 ![Project Overview](assets/project_overview.png)
 
-**Live Demo:** https://aiops.moatazai.com  
+**Live Application:** https://aiops.moatazai.com  
 **Repository:** https://github.com/moatazsaad/ai-operations-automation-agent
 
 AI-powered procurement and operations control tower that lets managers ask business questions in plain English and receive KPI, supplier, inventory, spend, risk, and reporting insights from operational data.
