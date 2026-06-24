@@ -651,9 +651,3 @@ Planned:
 
 
 ---
-
-# Summary
-
-This project demonstrates how AI agents can act as an operations intelligence layer on top of business systems.
-
-It combines procurement domain knowledge, SQL analytics, LLM tool orchestration, Slack automation, dashboard visualization, cloud deployment, and executive reporting into a working production-style AI application.
