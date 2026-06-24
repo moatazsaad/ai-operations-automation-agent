@@ -649,11 +649,6 @@ Planned:
 - Automated database backups to S3
 - CloudWatch alarms, disk monitoring, and centralized application logs
 
----
-
-## Resume-Ready Summary
-
-Built and deployed an AI operations control tower that lets managers ask procurement questions in plain English and receive KPI, supplier, inventory, spend, and risk insights. Automated low-stock alerts, reorder recommendations, delayed PO tracking, supplier analysis, Slack notifications, and weekly executive reports. Deployed on AWS EC2 with FastAPI, PostgreSQL, Streamlit, systemd, Nginx, Cloudflare DNS, HTTPS, and secured internal app ports.
 
 ---
 
