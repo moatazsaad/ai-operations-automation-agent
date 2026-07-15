@@ -98,15 +98,16 @@ def fetch_top_delayed_suppliers(limit: int = 5) -> list:
         LIMIT %s
     """
 
-    # Execute query with safe limit parameter
-    cursor.execute(query, (limit,))
+    try:
+        # Execute query with safe limit parameter
+        cursor.execute(query, (limit,))
 
-    # Fetch returned rows
-    rows = cursor.fetchall()
-
-    # Close database resources
-    cursor.close()
-    conn.close()
+        # Fetch returned rows
+        rows = cursor.fetchall()
+    finally:
+        # Close database resources
+        cursor.close()
+        conn.close()
 
     # Convert SQL rows into Python dictionaries
     return [

@@ -30,6 +30,9 @@ pending_reports = {}
 # Dictionary to store Slack user who requested the pending report
 pending_report_users = {}
 
+# Dictionary to store the report label (sales vs operations) for the pending report
+pending_report_labels = {}
+
 # Create Slack client 
 slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
 
@@ -259,13 +262,16 @@ async def slack_events(request: Request):
                     # Remove the stored requesting user for this channel
                     pending_report_users.pop(channel, None)
 
+                    # Remove the stored report label for this channel
+                    report_label = pending_report_labels.pop(channel, "Weekly KPI Report")
+
                     # Upload the PDF report to Slack with a short approval message
                     slack_client.files_upload_v2(
                         file=paths["pdf_path"],
-                        title="Weekly KPI Report",
+                        title=report_label,
                         channel=channel,
                         initial_comment=(
-                            "Approved weekly KPI report upload.\n"
+                            f"Approved {report_label.lower()} upload.\n"
                             f"Markdown: {paths['markdown_path']}"
                         ),
                     )
@@ -273,8 +279,13 @@ async def slack_events(request: Request):
 
                 # Handle flexible weekly report generation requests inside Slack
                 if "generate" in cleaned_text_lower and "weekly" in cleaned_text_lower and "report" in cleaned_text_lower:
-                    # Build the report files immediately
-                    paths = build_sales_report()
+                    # Build the operations report if the request mentions operations or procurement
+                    if "operations" in cleaned_text_lower or "procurement" in cleaned_text_lower:
+                        paths = build_operations_report()
+                        report_label = "Weekly Operations Report"
+                    else:
+                        paths = build_sales_report()
+                        report_label = "Weekly KPI Report"
 
                     # Save the generated report paths until approval
                     pending_reports[channel] = paths
@@ -282,11 +293,14 @@ async def slack_events(request: Request):
                     # Save the Slack user who requested the report
                     pending_report_users[channel] = user_id
 
+                    # Save the report label for this channel
+                    pending_report_labels[channel] = report_label
+
                     # Send a Slack message telling the user the report is ready and awaiting approval
                     slack_client.chat_postMessage(
                         channel=channel,
                         text=(
-                            "Weekly KPI report is ready.\n"
+                            f"{report_label} is ready.\n"
                             f"Markdown: {paths['markdown_path']}\n"
                             "Reply with approve to upload the PDF."
                         ),
