@@ -10,7 +10,7 @@ GitHub: [https://github.com/moatazsaad/ai-operations-automation-agent](https://g
 
 AI-powered procurement and operations control tower that lets managers ask business questions in plain English and receive KPI, supplier, inventory, spend, risk, and reporting insights from operational data.
 
-The platform combines **FastAPI**, **PostgreSQL**, **Streamlit**, **MCP tools**, **LLM agent orchestration**, **Slack workflows**, scheduled reporting, and a production-style AWS deployment with **Nginx**, **HTTPS**, and secured internal ports.
+The platform combines **FastAPI**, **PostgreSQL**, **Next.js**, **MCP tools**, **LLM agent orchestration**, **Slack workflows**, scheduled reporting, and a production-style AWS deployment with **Nginx**, **HTTPS**, and secured internal ports.
 
 ---
 
@@ -27,7 +27,7 @@ It helps managers answer questions such as:
 - What operational risks should be prioritized this week?
 - Can I generate a weekly executive operations report?
 
-Instead of manually checking spreadsheets, dashboards, or ERP screens, users can interact with the system through a Streamlit dashboard, API endpoints, Slack workflows, and natural-language AI prompts.
+Instead of manually checking spreadsheets, dashboards, or ERP screens, users can interact with the system through a web dashboard, API endpoints, Slack workflows, and natural-language AI prompts.
 
 ---
 
@@ -41,13 +41,13 @@ https://aiops.moatazai.com
 
 Production-style deployment work completed:
 
-- Deployed FastAPI backend and Streamlit dashboard on AWS EC2
-- Configured `systemd` services so FastAPI and Streamlit restart after crashes or EC2 reboot
+- Deployed FastAPI backend and a Next.js frontend (static export) on AWS EC2
+- Configured a `systemd` service so FastAPI restarts after crashes or EC2 reboot
 - Added Nginx reverse proxy so users access the app through a standard web URL
 - Attached an Elastic IP for a stable public server address
 - Connected Cloudflare DNS using `aiops.moatazai.com`
 - Enabled HTTPS/SSL for secure browser access
-- Closed direct public access to internal app ports `8000` and `8501`
+- Closed direct public access to the internal app port `8000`
 - Kept traffic routed through Nginx as the public entry point
 
 Production flow:
@@ -63,9 +63,7 @@ AWS Elastic IP
   ↓
 Nginx reverse proxy
   ↓
-Streamlit dashboard on localhost:8501
-  ↓
-FastAPI backend on localhost:8000
+Next.js static frontend (Nginx serves it directly)  +  FastAPI backend on localhost:8000
   ↓
 PostgreSQL database on localhost:5432
 ```
@@ -132,9 +130,9 @@ AND expected_delivery_date < CURRENT_DATE
 
 ---
 
-### Streamlit Dashboard: AI Procurement Control Tower
+### Frontend: AI Procurement Control Tower
 
-The Streamlit dashboard gives managers a visual control tower for procurement and operations.
+A Next.js dashboard (`frontend/`) - TypeScript, Tailwind CSS, shadcn/ui, Recharts, TanStack Query - gives managers a visual control tower for procurement and operations.
 
 Dashboard sections include:
 
@@ -191,20 +189,22 @@ Reports include:
 ## Architecture
 
 ```text
-Streamlit Dashboard
-  ↓
+Next.js Frontend
+        ↓
 FastAPI Backend
-  ↓
+        ↓
 LLM Agent / MCP Tools
-  ↓
+        ↓
 Python Service Layer
-  ↓
+        ↓
 PostgreSQL Database
-  ↓
+        ↓
 Markdown / PDF Reports
-  ↓
+        ↓
 Slack Notifications
 ```
+
+The frontend uses read-only endpoints under `/api/metrics/*` (`app/routers/metrics.py`) instead of calling the service layer directly.
 
 Deployment architecture:
 
@@ -215,9 +215,7 @@ AWS Elastic IP
   ↓
 Nginx :80/:443
   ↓
-Streamlit :8501
-  ↓
-FastAPI :8000
+Next.js static files (served directly by Nginx)  +  FastAPI :8000
   ↓
 PostgreSQL :5432
 ```
@@ -233,7 +231,7 @@ The system is deployed on AWS EC2 using Ubuntu Linux.
 Production setup includes:
 
 * FastAPI backend service
-* Streamlit dashboard service
+* Next.js frontend (static export, served by Nginx)
 * PostgreSQL database
 * Nginx reverse proxy
 * HTTPS SSL certificates
@@ -245,7 +243,7 @@ Production setup includes:
 
 ## systemd Services
 
-FastAPI and Streamlit run as systemd services.
+FastAPI runs as a systemd service (the frontend is static files, served directly by Nginx - no process needed).
 
 Benefits:
 
@@ -254,11 +252,10 @@ Benefits:
 * Centralized logs
 * Easier production management
 
-Example services:
+Example service:
 
 ```text
 fastapi.service
-streamlit.service
 ```
 
 ---
@@ -271,8 +268,11 @@ Routing logic:
 
 ```text
 https://aiops.moatazai.com
-→ Streamlit :8501
+→ Next.js static files (served directly by Nginx)
 
+https://aiops.moatazai.com/api/metrics/*
+https://aiops.moatazai.com/run-agent
+https://aiops.moatazai.com/generate-operations-report
 https://aiops.moatazai.com/slack/events
 → FastAPI :8000
 ```
@@ -299,7 +299,7 @@ Security improvements include:
 * HMAC verification for Slack events
 * Timestamp validation to reduce replay attacks
 
-Ports `8000` and `8501` are not exposed publicly.
+Port `8000` is not exposed publicly.
 
 ---
 
@@ -322,7 +322,7 @@ This helps monitor application health and server usage.
 - **Backend:** FastAPI, Pydantic
 - **Database:** PostgreSQL, psycopg2
 - **AI/Agents:** LLM agents, MCP tools, LiteLLM, Fireworks AI endpoint
-- **Dashboard:** Streamlit, Pandas
+- **Frontend:** Next.js, TypeScript, Tailwind CSS, shadcn/ui, Recharts, TanStack Query, Framer Motion
 - **Reports:** ReportLab, Markdown, PDF
 - **Automation:** Scheduled jobs, Slack SDK
 - **Deployment:** AWS EC2, Ubuntu, systemd, Nginx
@@ -367,10 +367,12 @@ app/
 ├── agent.py
 ├── main.py
 ├── mcp_server.py
-├── dashboard.py
 ├── run_agent.py
 ├── run_weekly_report.py
 ├── run_weekly_operations_report.py
+│
+├── routers/
+│   └── metrics.py          # read-only REST endpoints for the frontend
 │
 ├── database/
 │   └── db.py
@@ -382,6 +384,13 @@ app/
 │   ├── operations_report_service.py
 │   ├── email_service.py
 │   └── slack_service.py
+│
+frontend/                     # Next.js dashboard (live at aiops.moatazai.com)
+├── src/
+│   ├── app/                  # page, layout, providers
+│   ├── components/dashboard/ # KPI cards, charts, tabs, ask-agent panel, etc.
+│   ├── lib/                  # API client, types, palette, derived-text logic
+│   └── hooks/                # TanStack Query hooks
 │
 reports/
 ├── weekly_sales_report_*.md
@@ -418,12 +427,17 @@ Create a `.env` file in the project root.
 
 ```env
 DATABASE_URL=postgresql://postgres:password@localhost:5432/ai_ops
-FASTAPI_URL=http://localhost:8000
 SLACK_BOT_TOKEN=your_slack_bot_token
 SLACK_SIGNING_SECRET=your_slack_signing_secret
 OPENAI_API_KEY=your_openai_or_llm_key
 HF_TOKEN=your_huggingface_token
+ALLOWED_ORIGINS=http://localhost:3000
+APP_API_KEY=a_random_secret_string
 ```
+
+`ALLOWED_ORIGINS` is a comma-separated CORS allow-list, only needed when the frontend runs on a different origin than the API (e.g. local dev). In production both are served from the same domain, so it has no effect there.
+
+`APP_API_KEY` protects `/run-agent`, `/generate-operations-report`, `/generate-report`, and `/api/metrics/*` behind an `X-API-Key` header, so only requests carrying this key go through. The frontend sends it automatically (`NEXT_PUBLIC_API_KEY` in its own env file).
 
 Do not commit `.env` to GitHub.
 
@@ -464,16 +478,16 @@ FastAPI docs:
 http://127.0.0.1:8000/docs
 ```
 
-Start Streamlit:
+Start the Next.js frontend (needs FastAPI running first, with `ALLOWED_ORIGINS` including `http://localhost:3000`):
 
 ```bash
-python -m streamlit run app/dashboard.py --server.address 0.0.0.0 --server.port 8501
+cd frontend
+npm install
+npm run dev
 ```
 
-Streamlit dashboard:
-
 ```text
-http://127.0.0.1:8501
+http://localhost:3000
 ```
 
 ---
@@ -510,6 +524,23 @@ Slack events endpoint:
 POST /slack/events
 ```
 
+Read-only metrics endpoints (new - used by the Next.js frontend):
+
+```text
+GET /api/metrics/low-stock-items
+GET /api/metrics/delayed-purchase-orders
+GET /api/metrics/supplier-performance
+GET /api/metrics/spend-by-supplier
+GET /api/metrics/reorder-recommendations
+GET /api/metrics/top-delayed-suppliers
+```
+
+Report file endpoint (serves a generated report so the frontend can show it inline - no API key needed, only the exact generated filename works):
+
+```text
+GET /reports/{filename}
+```
+
 ---
 
 ## Example API Calls
@@ -540,13 +571,12 @@ curl -X POST http://127.0.0.1:8000/run-agent \
 
 ## Production Service Management
 
-FastAPI and Streamlit are managed with `systemd`.
+FastAPI is managed with `systemd`. The frontend is static files served directly by Nginx, so there's no frontend process to manage.
 
 Check service status:
 
 ```bash
 sudo systemctl status fastapi
-sudo systemctl status streamlit
 sudo systemctl status nginx
 ```
 
@@ -554,7 +584,6 @@ Restart services:
 
 ```bash
 sudo systemctl restart fastapi
-sudo systemctl restart streamlit
 sudo systemctl reload nginx
 ```
 
@@ -562,7 +591,6 @@ View logs:
 
 ```bash
 sudo journalctl -u fastapi -f
-sudo journalctl -u streamlit -f
 sudo journalctl -u nginx -f
 ```
 
@@ -620,11 +648,12 @@ send_slack_report_notification
 Completed:
 
 - Deployed the application on AWS EC2 with Ubuntu Linux
-- Configured FastAPI and Streamlit as `systemd` services for automatic restart after crashes or server reboot
+- Configured FastAPI as a `systemd` service for automatic restart after crashes or server reboot
+- Deployed the Next.js frontend as a static export, served directly by Nginx
 - Added Nginx as a reverse proxy and single public entry point
 - Connected Cloudflare DNS to the EC2 Elastic IP using `aiops.moatazai.com`
 - Enabled HTTPS/SSL using Certbot and Let's Encrypt
-- Removed direct public access to internal app ports `8000` and `8501`
+- Removed direct public access to the internal app port `8000`
 - Routed `/slack/events` through Nginx to FastAPI for Slack webhook handling
 - Added Slack signature verification using HMAC and timestamp checks
 - Added basic CloudWatch monitoring for CPU utilization, EC2 instance health checks, and NetworkIn/NetworkOut traffic
@@ -657,7 +686,7 @@ Planned:
 
 ## Resume-Ready Summary
 
-Built and deployed an AI operations control tower that lets managers ask procurement questions in plain English and receive KPI, supplier, inventory, spend, and risk insights. Automated low-stock alerts, reorder recommendations, delayed PO tracking, supplier analysis, Slack notifications, and weekly executive reports. Deployed on AWS EC2 with FastAPI, PostgreSQL, Streamlit, systemd, Nginx, Cloudflare DNS, HTTPS, and secured internal app ports.
+Built and deployed an AI operations control tower that lets managers ask procurement questions in plain English and receive KPI, supplier, inventory, spend, and risk insights. Automated low-stock alerts, reorder recommendations, delayed PO tracking, supplier analysis, Slack notifications, and weekly executive reports. Deployed on AWS EC2 with FastAPI, PostgreSQL, a Next.js frontend, systemd, Nginx, Cloudflare DNS, HTTPS, and secured internal app ports.
 
 ---
 
