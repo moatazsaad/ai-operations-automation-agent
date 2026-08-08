@@ -1,6 +1,5 @@
 from pathlib import Path
 from datetime import datetime
-import textwrap
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from app.services.metrics_service import (
@@ -25,9 +24,11 @@ def build_sales_report() -> dict:
     average_order_value = fetch_average_order_value(days=7)
     # Get top customer name 
     top_customer = customers[0]["customer_name"] if customers else "N/A"
-    # Get top customer spending 
+    # Get top customer spending
     top_customer_spent = customers[0]["total_spent"] if customers else 0
-    # Build customer lines for the markdown report 
+    # Get top customer share of total revenue
+    top_customer_share = (top_customer_spent / revenue * 100) if revenue else 0
+    # Build customer lines for the markdown report
     customer_lines = "\n".join(
         [f"- {customer['customer_name']}: ${customer['total_spent']:,.2f}" for customer in customers]
     ) if customers else "- N/A"
@@ -47,14 +48,11 @@ def build_sales_report() -> dict:
     markdown_path = reports_dir / f"weekly_sales_report_{timestamp}.md"
 
     # Build the full report  using fetched metrics
-    report_text = textwrap.dedent(
-        f"""
+    report_text = f"""
         # Weekly Sales Report
 
         ## Executive Summary
-        This week, total completed-order revenue was ${revenue:,.2f}.
-        The company completed {total_orders} orders with an average order value of ${average_order_value:,.2f}.
-        The top customer was {top_customer} with ${top_customer_spent:,.2f} in purchases.
+        This week, revenue was concentrated: {top_customer} accounted for {top_customer_share:.1f}% of total revenue.
 
         ## Key Metrics
         - Total Revenue: ${revenue:,.2f}
@@ -67,7 +65,9 @@ def build_sales_report() -> dict:
         ## Top Products
         {product_lines}
         """
-    ).strip()
+
+    # Strip each line since customer/product lines don't carry the template's indentation, so dedent can't clean it up
+    report_text = "\n".join(line.strip() for line in report_text.split("\n")).strip()
 
     # Write text to the markdown file
     markdown_path.write_text(report_text, encoding="utf-8")

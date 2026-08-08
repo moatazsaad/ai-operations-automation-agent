@@ -1,6 +1,5 @@
 from pathlib import Path
 from datetime import datetime
-import textwrap
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
@@ -23,17 +22,23 @@ def build_operations_report() -> dict:
         [
             f"- {item['item_name']} ({item['category']}): "
             f"{item['current_stock']} in stock, reorder point {item['reorder_point']}"
-            for item in low_stock_items
+            for item in low_stock_items[:10]
         ]
     ) if low_stock_items else "- No low stock items"
+
+    if len(low_stock_items) > 10:
+        low_stock_lines += f"\n- ... and {len(low_stock_items) - 10} more low-stock items. See the dashboard for the full list."
 
     delayed_order_lines = "\n".join(
         [
             f"- PO #{order['purchase_order_id']} - {order['item_name']} "
             f"from {order['supplier_name']}, expected {order['expected_delivery_date']}"
-            for order in delayed_orders
+            for order in delayed_orders[:10]
         ]
     ) if delayed_orders else "- No delayed purchase orders"
+
+    if len(delayed_orders) > 10:
+        delayed_order_lines += f"\n- ... and {len(delayed_orders) - 10} more delayed purchase orders. See the dashboard for the full list."
 
     supplier_lines = "\n".join(
         [
@@ -58,8 +63,7 @@ def build_operations_report() -> dict:
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     markdown_path = reports_dir / f"weekly_operations_report_{timestamp}.md"
 
-    report_text = textwrap.dedent(
-        f"""
+    report_text = f"""
         # Weekly Operations Report
 
         ## Executive Summary
@@ -78,7 +82,9 @@ def build_operations_report() -> dict:
         ## Procurement Spend by Supplier
         {spend_lines}
         """
-    ).strip()
+
+    # Strip each line since the joined lists don't carry the template's indentation, so dedent can't clean it up
+    report_text = "\n".join(line.strip() for line in report_text.split("\n")).strip()
 
     markdown_path.write_text(report_text, encoding="utf-8")
 

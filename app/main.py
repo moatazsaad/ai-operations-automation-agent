@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Security, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from slack_sdk import WebClient
 from agents import Runner
@@ -15,6 +17,8 @@ import logging
 from app.services.report_service import build_sales_report
 from app.agent import create_operations_agent
 from app.services.operations_report_service import build_operations_report
+from app.routers.metrics import router as metrics_router
+from app.routers.reports import router as reports_router
 
 # Configure basic logging for the application
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +33,9 @@ pending_reports = {}
 
 # Dictionary to store Slack user who requested the pending report
 pending_report_users = {}
+
+# Dictionary to store the report label (sales vs operations) for the pending report
+pending_report_labels = {}
 
 # Create Slack client 
 slack_client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
@@ -77,6 +84,46 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Read allowed frontend origins from an env var so no domain is hardcoded here.
+# Example: ALLOWED_ORIGINS=https://app.aiops.moatazai.com,http://localhost:3000
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+# Lets a frontend on a different origin (e.g. local dev) call this API from
+# the browser. In production the frontend and API share the same domain, so
+# this has no effect there.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
+# The one secret both the frontend and this server know. Any request
+# missing it, or sending the wrong value, gets rejected before touching the
+# agent, the database, or generating a report.
+APP_API_KEY = os.getenv("APP_API_KEY")
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def require_api_key(provided_key: str = Security(api_key_header)):
+    if not APP_API_KEY or provided_key != APP_API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+
+# Register the new read-only metrics endpoints under /api/metrics/...
+# Protected: this is real business data, not meant to be public.
+app.include_router(metrics_router, dependencies=[Depends(require_api_key)])
+
+# Register the report file endpoint under /reports/{filename}. Left
+# unprotected on purpose - the <iframe> that shows the PDF inline can't send
+# a custom header, and this only serves an already-generated file by its
+# exact timestamped name, not something that costs money to call.
+app.include_router(reports_router)
+
 
 # Define a helper function that verifies Slack request signatures
 def verify_slack_signature(request_body: bytes, timestamp: str, slack_signature: str) -> bool:
@@ -122,7 +169,7 @@ async def root():
 
 
 # Define an endpoint for manually running the agent with a prompt
-@app.post("/run-agent")
+@app.post("/run-agent", dependencies=[Depends(require_api_key)])
 async def run_agent(request: AgentRequest):
     # Build the MCP-connected agent
     agent = get_agent()
@@ -134,7 +181,7 @@ async def run_agent(request: AgentRequest):
     return {"response": result.final_output}
 
 # Define an endpoint to directly generate the weekly procurement/operations report
-@app.post("/generate-operations-report")
+@app.post("/generate-operations-report", dependencies=[Depends(require_api_key)])
 async def generate_operations_report():
     paths = build_operations_report()
 
@@ -145,7 +192,7 @@ async def generate_operations_report():
     }
 
 # Define an endpoint for directly generating the weekly report without going through the agent
-@app.post("/generate-report")
+@app.post("/generate-report", dependencies=[Depends(require_api_key)])
 async def generate_report():
     # Build the markdown and PDF report files
     paths = build_sales_report()
@@ -259,13 +306,16 @@ async def slack_events(request: Request):
                     # Remove the stored requesting user for this channel
                     pending_report_users.pop(channel, None)
 
+                    # Remove the stored report label for this channel
+                    report_label = pending_report_labels.pop(channel, "Weekly KPI Report")
+
                     # Upload the PDF report to Slack with a short approval message
                     slack_client.files_upload_v2(
                         file=paths["pdf_path"],
-                        title="Weekly KPI Report",
+                        title=report_label,
                         channel=channel,
                         initial_comment=(
-                            "Approved weekly KPI report upload.\n"
+                            f"Approved {report_label.lower()} upload.\n"
                             f"Markdown: {paths['markdown_path']}"
                         ),
                     )
@@ -273,8 +323,13 @@ async def slack_events(request: Request):
 
                 # Handle flexible weekly report generation requests inside Slack
                 if "generate" in cleaned_text_lower and "weekly" in cleaned_text_lower and "report" in cleaned_text_lower:
-                    # Build the report files immediately
-                    paths = build_sales_report()
+                    # Build the operations report if the request mentions operations or procurement
+                    if "operations" in cleaned_text_lower or "procurement" in cleaned_text_lower:
+                        paths = build_operations_report()
+                        report_label = "Weekly Operations Report"
+                    else:
+                        paths = build_sales_report()
+                        report_label = "Weekly KPI Report"
 
                     # Save the generated report paths until approval
                     pending_reports[channel] = paths
@@ -282,11 +337,14 @@ async def slack_events(request: Request):
                     # Save the Slack user who requested the report
                     pending_report_users[channel] = user_id
 
+                    # Save the report label for this channel
+                    pending_report_labels[channel] = report_label
+
                     # Send a Slack message telling the user the report is ready and awaiting approval
                     slack_client.chat_postMessage(
                         channel=channel,
                         text=(
-                            "Weekly KPI report is ready.\n"
+                            f"{report_label} is ready.\n"
                             f"Markdown: {paths['markdown_path']}\n"
                             "Reply with approve to upload the PDF."
                         ),
@@ -322,5 +380,3 @@ async def slack_events(request: Request):
 
 
 # python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-# python -m streamlit run app/dashboard.py --server.port 8501 --server.address 0.0.0.0
-# ./.venv/bin/python -m streamlit run app/dashboard.py --server.port 8501 --server.address 0.0.0.0
