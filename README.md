@@ -2,7 +2,6 @@
 
 ![Project Overview](assets/project_overview.png)
 
-**Demo video:** https://youtu.be/kknPR9j0y3s
 **Live Application:** https://aiops.moatazai.com  
 
 AI-powered procurement and operations control tower that lets managers ask business questions in plain English and receive KPI, supplier, inventory, spend, risk, and reporting insights from operational data.
